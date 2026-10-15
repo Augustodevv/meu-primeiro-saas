@@ -1,0 +1,10 @@
+{
+  "name": "finance-saas",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@finance/api",
+    "dev:web": "npm run dev --workspace=@finance/web",
+    "build": "npm run build --workspaces"
+  }
+}
