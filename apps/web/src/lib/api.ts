@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:3333`;
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:3333`);
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
 export type Transaction = {

@@ -24,6 +24,10 @@ Monorepo inicial para gestão financeira pessoal multi-tenant, com API Fastify, 
 
 O `POST /auth/register` cria uma organização (tenant) e um usuário administrador no plano Free. Registro e login exigem `tenantSlug` (ex.: `minha-familia`) para impedir ambiguidade quando o mesmo e-mail pertence a mais de uma organização.
 
+## Hospedagem
+
+`vercel.json` reúne o frontend Vite e a API Fastify em um projeto Vercel Services (beta). O frontend usa `/api` no mesmo domínio, enquanto o roteamento do serviço remove esse prefixo antes de chegar ao Fastify. Configure `DATABASE_URL` (PostgreSQL) e `JWT_SECRET` (ao menos 32 caracteres) no projeto. Aplique `database/schema.sql` uma vez em um banco vazio antes de usar registro/login. `GET /api/health` confirma a conexão com o banco. O plano Free/Premium continua simulado, sem cobrança real.
+
 ### Rotas principais
 
 - `POST /auth/register`, `POST /auth/login`

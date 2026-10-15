@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import Fastify from 'fastify';
 import { ZodError } from 'zod';
+import { db } from './lib/database.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 import { transactionRoutes } from './modules/transactions/transaction.routes.js';
@@ -28,6 +29,9 @@ await app.register(authRoutes, { prefix: '/auth' });
 await app.register(dashboardRoutes, { prefix: '/dashboard' });
 await app.register(transactionRoutes, { prefix: '/transactions' });
 await app.register(subscriptionRoutes, { prefix: '/subscription' });
-app.get('/health', async () => ({ status: 'ok' }));
+app.get('/health', async () => {
+  await db.query('SELECT 1');
+  return { status: 'ok' };
+});
 
 await app.listen({ port: Number(process.env.PORT ?? 3333), host: '0.0.0.0' });
