@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { demoSession } from '../lib/demo';
 import { api, AuthResponse } from '../lib/api';
 
 type AuthScreenProps = { onAuthenticated: (session: AuthResponse) => void };
@@ -46,7 +47,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           <p className="text-sm font-semibold uppercase tracking-widest text-indigo-600">Bem-vindo ao Fluxo</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight">{mode === 'register' ? 'Crie sua conta' : 'Acesse sua conta'}</h2>
           <p className="mt-2 text-slate-500">{mode === 'register' ? 'Comece gratuitamente. Sem cartão de crédito.' : 'Volte a acompanhar suas finanças.'}</p>
-          <form onSubmit={submit} className="mt-8 space-y-4">
+          <button type="button" onClick={() => onAuthenticated(demoSession)} className="mt-6 w-full rounded-xl border border-indigo-300 px-5 py-3 font-semibold text-indigo-700 hover:bg-indigo-50">Explorar demonstração sem cadastro</button><p className="mt-2 text-center text-xs text-slate-600">Dados fictícios · Sem conexão bancária · Projeto de portfólio</p><form onSubmit={submit} className="mt-8 space-y-4">
             {mode === 'register' && <>
               <Field label="Seu nome" value={name} onChange={setName} autoComplete="name" required />
               <Field label="Nome da organização" value={tenantName} onChange={setTenantName} required />
