@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 const base = 'http://127.0.0.1:3338';
 const request = async (path, method = 'GET', body, token) => {
-  const response = await fetch(base + path, {method, headers: {'Content-Type':'application/json', ...(token ? {Authorization: `Bearer ${token}`} : {})}, ...(body ? {body:JSON.stringify(body)} : {})});
+  const response = await fetch(base + path, {method, headers: {...(body ? {'Content-Type':'application/json'} : {}), ...(token ? {Authorization: `Bearer ${token}`} : {})}, ...(body ? {body:JSON.stringify(body)} : {})});
   return {status:response.status, data:response.status === 204 ? null : await response.json()};
 };
 test('PostgreSQL: autenticação, CRUD, isolamento e limite concorrente', {timeout:60000}, async () => {
