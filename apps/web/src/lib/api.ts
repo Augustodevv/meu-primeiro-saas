@@ -1,3 +1,4 @@
+import { demoRequest } from './demo';
 const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:3333`);
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
@@ -23,6 +24,7 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+  if (token === 'portfolio-demo') return demoRequest<T>(path, options);
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
