@@ -18,7 +18,7 @@ export async function enforceTransactionLimit(request: FastifyRequest, reply: Fa
   if (count >= FREE_TRANSACTION_LIMIT) {
     return reply.code(403).send({
       code: 'FREE_TRANSACTION_LIMIT_REACHED',
-      message: `O plano Free permite até ${FREE_TRANSACTION_LIMIT} transações. Faça upgrade para continuar.`,
+      message: `O plano Free permite até ${FREE_TRANSACTION_LIMIT} transações. Edite ou remova um registro para liberar espaço. O Premium é apenas demonstrativo.`,
       limit: FREE_TRANSACTION_LIMIT,
     });
   }
