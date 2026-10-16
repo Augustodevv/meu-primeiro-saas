@@ -41,3 +41,19 @@ As rotas autenticadas exigem `Authorization: Bearer <token>`. O identificador do
 ## Escopo do MVP
 
 O plano Free permite até 50 transações por organização; o Premium simulado permite mais. O limite é conferido novamente dentro de uma transação do banco para impedir que requisições simultâneas o ultrapassem. Não há integração de pagamento neste MVP.
+
+## Demonstração para portfólio
+
+Na tela inicial, clique em **Explorar demonstração sem cadastro**. Você pode criar, editar e excluir receitas e despesas fictícias, visualizar o saldo e filtrar transações. Os dados da demonstração ficam apenas na sessão da aba; ela não usa o banco, não pede senha e não faz cobranças. O modo com cadastro usa a API e exige PostgreSQL configurado.
+
+## Validação
+
+- `npm run build`: verifica TypeScript e gera frontend e API.
+- `node --test tests/integration.test.mjs`: com `DATABASE_URL` apontando para um banco de teste com o schema aplicado, verifica autenticação, vencimento do token, CRUD, isolamento entre organizações e 52 criações concorrentes contra o limite de 50.
+- `.github/workflows/verify.yml`: executa build e integração com PostgreSQL 16 no GitHub Actions.
+
+## Decisões e limites
+
+Projeto de estudo e portfólio de Augusto Novaes, desenvolvido com apoio de IA. React, TypeScript e Tailwind no frontend; Fastify, Node.js e PostgreSQL no backend. Queries parametrizadas e filtros por organização; senha com bcrypt; JWT com validade de 8 horas; sessão do navegador restrita à aba. Formulário com diálogo nativo e navegação por teclado.
+
+O MVP não integra bancos nem pagamentos, não oferece recuperação de senha e não deve receber dados financeiros reais em uma demonstração pública. Antes de uso comercial, adicionar proteção contra tentativas de login, verificação de e-mail, recuperação de conta, monitoramento e política de backups. Premium é uma regra demonstrativa do servidor, sem checkout ou upgrade comercial na interface. Não há alegações de clientes, receita ou ganho percentual.
