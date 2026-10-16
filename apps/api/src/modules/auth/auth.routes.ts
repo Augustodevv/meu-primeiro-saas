@@ -3,7 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db } from '../../lib/database.js';
 
-const credentials = z.object({ email: z.string().email().max(255), password: z.string().min(8).max(72), tenantSlug: z.string().regex(/^[a-z0-9-]+$/).max(80) });
+const credentials = z.object({ email: z.string().email().max(255), password: z.string().min(8).max(72).refine(value => Buffer.byteLength(value, 'utf8') <= 72, 'Senha deve ter no máximo 72 bytes.'), tenantSlug: z.string().regex(/^[a-z0-9-]+$/).max(80) });
 const registration = credentials.extend({ name: z.string().trim().min(2).max(120), tenantName: z.string().trim().min(2).max(120) });
 
 export async function authRoutes(app: FastifyInstance) {
