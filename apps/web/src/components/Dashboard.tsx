@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, AuthResponse, Subscription, Summary, Transaction, TransactionInput } from '../lib/api';
 
 type DashboardProps = { session: AuthResponse; onSignOut: () => void };
@@ -8,6 +8,8 @@ const emptyForm = (): TransactionInput => ({ title: '', amount: 0, transactionDa
 const shortDate = (date: string) => new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString('pt-BR');
 
 export function Dashboard({ session, onSignOut }: DashboardProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const requestId = useRef(0);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -22,6 +24,7 @@ export function Dashboard({ session, onSignOut }: DashboardProps) {
   const [formError, setFormError] = useState<string | null>(null);
 
   const load = useCallback(async (selectedFilter: 'month' | 'all') => {
+    const id = ++requestId.current;
     try {
       const month = localDate().slice(0, 7);
       const [nextSummary, nextTransactions, nextSubscription] = await Promise.all([
@@ -29,17 +32,21 @@ export function Dashboard({ session, onSignOut }: DashboardProps) {
         api<Transaction[]>(`/transactions${selectedFilter === 'month' ? `?month=${month}` : ''}`, {}, session.token),
         api<Subscription>('/subscription', {}, session.token),
       ]);
+      if (id !== requestId.current) return;
       setSummary(nextSummary);
       setTransactions(nextTransactions);
       setSubscription(nextSubscription);
       setError(null);
     } catch (caught) {
+      if (id !== requestId.current) return;
       if (caught instanceof ApiError && caught.status === 401) { onSignOut(); return; }
       setError(caught instanceof Error ? caught.message : 'Não foi possível carregar o painel.');
-    } finally { setLoading(false); }
+    } finally { if (id === requestId.current) setLoading(false); }
   }, [session.token, onSignOut]);
 
   useEffect(() => { void load(filter); }, [load, filter]);
+
+  useEffect(() => { if (showForm) dialogRef.current?.showModal(); }, [showForm]);
 
   function openNew() { setForm(emptyForm()); setEditingId(null); setFormError(null); setShowForm(true); }
   function openEdit(transaction: Transaction) {
@@ -80,7 +87,7 @@ export function Dashboard({ session, onSignOut }: DashboardProps) {
         <div className="flex items-center gap-4"><span className="hidden text-sm text-slate-500 sm:inline">{session.user.email}</span><button onClick={onSignOut} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">Sair</button></div>
       </div>
     </header>
-    <main className="mx-auto max-w-6xl px-5 py-9 sm:px-8">
+    <main className="mx-auto max-w-6xl px-5 py-9 sm:px-8">{session.token === "portfolio-demo" && <p role="status" className="mb-6 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Demonstração de portfólio · Dados fictícios, salvos apenas nesta aba. Sem conexão bancária ou cobrança.</p>}
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Visão geral · {monthLabel}</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Olá, {firstName} 👋</h1><p className="mt-2 text-slate-500">Aqui está o resumo das suas finanças.</p></div>
         <button onClick={openNew} className="rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700">+ Nova transação</button>
@@ -93,7 +100,7 @@ export function Dashboard({ session, onSignOut }: DashboardProps) {
           <Metric label="Despesas do mês" value={summary?.expense ?? 0} icon="↘" tone="red" />
         </section>
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-indigo-100 bg-indigo-50 px-5 py-4">
-          <div><p className="font-semibold text-indigo-950">Plano {subscription?.plan === 'PREMIUM' ? 'Premium' : 'Free'}</p><p className="text-sm text-indigo-700">{subscription?.plan === 'PREMIUM' ? 'Transações ilimitadas' : `${subscription?.transactionCount ?? 0} de 50 transações utilizadas`}</p></div>
+          <div><p className="font-semibold text-indigo-950">Plano {subscription?.plan === 'PREMIUM' ? 'Premium' : 'Free'}</p><p className="text-sm text-indigo-700">{subscription?.plan === 'PREMIUM' ? 'Premium demonstrativo · sem cobrança' : `${subscription?.transactionCount ?? 0} de 50 transações utilizadas`}</p></div>
           {subscription?.plan !== 'PREMIUM' && <div className="h-2 w-full max-w-44 overflow-hidden rounded-full bg-indigo-200"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${Math.min((subscription?.transactionCount ?? 0) * 2, 100)}%` }} /></div>}
         </div>
         <section className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -102,7 +109,7 @@ export function Dashboard({ session, onSignOut }: DashboardProps) {
         </section>
       </>}
     </main>
-    {showForm && <div className="fixed inset-0 z-10 flex items-center justify-center bg-slate-950/60 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowForm(false); }}><section role="dialog" aria-modal="true" aria-labelledby="transaction-form-title" className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl sm:p-8"><div className="flex items-start justify-between"><div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Seu financeiro</p><h2 id="transaction-form-title" className="mt-1 text-2xl font-bold">{editingId ? 'Editar transação' : 'Nova transação'}</h2></div><button aria-label="Fechar" onClick={() => setShowForm(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">✕</button></div><form onSubmit={save} className="mt-6 space-y-4"><label className="block text-sm font-medium">Título<input required maxLength={160} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Ex.: Supermercado" className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500" /></label><div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-medium">Valor (R$)<input required min="0.01" step="0.01" type="number" value={form.amount || ''} onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })} placeholder="0,00" className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500" /></label><label className="block text-sm font-medium">Data<input required type="date" value={form.transactionDate} onChange={(event) => setForm({ ...form, transactionDate: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500" /></label></div><fieldset><legend className="mb-2 text-sm font-medium">Tipo</legend><div className="grid grid-cols-2 gap-3"><TypeChoice label="Despesa" value="EXPENSE" selected={form.type === 'EXPENSE'} onSelect={() => setForm({ ...form, type: 'EXPENSE' })} /><TypeChoice label="Receita" value="INCOME" selected={form.type === 'INCOME'} onSelect={() => setForm({ ...form, type: 'INCOME' })} /></div></fieldset>{formError && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{formError}</p>}<div className="flex justify-end gap-3 pt-3"><button type="button" onClick={() => setShowForm(false)} className="rounded-xl px-4 py-3 font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button><button disabled={saving} className="rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Salvando…' : 'Salvar transação'}</button></div></form></section></div>}
+    {showForm && <dialog ref={dialogRef} onCancel={(event) => { if (saving) event.preventDefault(); else setShowForm(false); }} onClose={() => setShowForm(false)} aria-labelledby="transaction-form-title" className="w-full max-w-lg rounded-2xl p-0 backdrop:bg-slate-950/60"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl sm:p-8"><div className="flex items-start justify-between"><div><p className="text-sm font-semibold uppercase tracking-wider text-indigo-600">Seu financeiro</p><h2 id="transaction-form-title" className="mt-1 text-2xl font-bold">{editingId ? 'Editar transação' : 'Nova transação'}</h2></div><button disabled={saving} aria-label="Fechar" onClick={() => setShowForm(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">✕</button></div><form onSubmit={save} className="mt-6 space-y-4"><label className="block text-sm font-medium">Título<input autoFocus required maxLength={160} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Ex.: Supermercado" className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500" /></label><div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-medium">Valor (R$)<input required min="0.01" step="0.01" type="number" value={form.amount || ''} onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })} placeholder="0,00" className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500" /></label><label className="block text-sm font-medium">Data<input required type="date" value={form.transactionDate} onChange={(event) => setForm({ ...form, transactionDate: event.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500" /></label></div><fieldset><legend className="mb-2 text-sm font-medium">Tipo</legend><div className="grid grid-cols-2 gap-3"><TypeChoice label="Despesa" value="EXPENSE" selected={form.type === 'EXPENSE'} onSelect={() => setForm({ ...form, type: 'EXPENSE' })} /><TypeChoice label="Receita" value="INCOME" selected={form.type === 'INCOME'} onSelect={() => setForm({ ...form, type: 'INCOME' })} /></div></fieldset>{formError && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{formError}</p>}<div className="flex justify-end gap-3 pt-3"><button disabled={saving} type="button" onClick={() => setShowForm(false)} className="rounded-xl px-4 py-3 font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button><button disabled={saving} className="rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Salvando…' : 'Salvar transação'}</button></div></form></section></dialog>}
   </div>;
 }
 
