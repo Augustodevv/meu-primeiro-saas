@@ -5,7 +5,7 @@ export interface TransactionInput { title: string; amount: number; transactionDa
 export const FREE_TRANSACTION_LIMIT = 50;
 
 export class TransactionLimitError extends Error {
-  constructor() { super(`O plano Free permite até ${FREE_TRANSACTION_LIMIT} transações. Faça upgrade para continuar.`); }
+  constructor() { super(`O plano Free permite até ${FREE_TRANSACTION_LIMIT} transações. Edite ou remova um registro para liberar espaço. O Premium é apenas demonstrativo.`); }
 }
 
 export class TransactionRepository {
