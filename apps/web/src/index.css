@@ -3,3 +3,8 @@
 @tailwind utilities;
 
 @layer base { body { @apply bg-slate-50 text-slate-900 antialiased; } }
+
+:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+dialog { max-height: 90dvh; overflow-y: auto; }
+button:disabled { cursor: wait; }
+main { overflow-wrap: anywhere; }
