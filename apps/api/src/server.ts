@@ -13,7 +13,7 @@ import { subscriptionRoutes } from './modules/subscription/subscription.routes.j
 const app = Fastify({ logger: true });
 await app.register(cors, { origin: process.env.WEB_ORIGIN?.split(',') ?? ['http://localhost:5173', 'http://127.0.0.1:5173'] });
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) throw new Error('Defina JWT_SECRET com pelo menos 32 caracteres.');
-await app.register(jwt, { secret: process.env.JWT_SECRET });
+await app.register(jwt, { secret: process.env.JWT_SECRET, sign: { expiresIn: '8h' } });
 
 app.decorate('authenticate', async (request: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply) => {
   try { await request.jwtVerify(); } catch { return reply.code(401).send({ message: 'Token ausente, inválido ou expirado.' }); }
@@ -21,6 +21,7 @@ app.decorate('authenticate', async (request: import('fastify').FastifyRequest, r
 app.setErrorHandler((error, _request, reply) => {
   if (error instanceof ZodError) return reply.code(400).send({ message: 'Dados inválidos.', issues: error.flatten() });
   if (error instanceof TransactionLimitError) return reply.code(403).send({ code: 'FREE_TRANSACTION_LIMIT_REACHED', message: error.message, limit: 50 });
+  if (typeof error === 'object' && error !== null && 'statusCode' in error && typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) return reply.code(error.statusCode).send({ message: 'Requisição inválida.' });
   app.log.error(error);
   return reply.code(500).send({ message: 'Erro interno do servidor.' });
 });
